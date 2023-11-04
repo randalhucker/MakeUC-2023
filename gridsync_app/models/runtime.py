@@ -10,7 +10,7 @@ from tensorflow.keras.layers import LSTM, Dense
 
 # Model class
 # This class is used to train and predict using a Long Short Term Memory (LSTM) Recurrent Neural Network (RNN)
-class Model:
+class PredictedLoadModel:
     def __init__(self, ModelID):
         self.id = ModelID
         self.database = db.DataBase()
@@ -20,7 +20,8 @@ class Model:
         # Load historical data
         data = self.database.get_records(self.id)
 
-        data = collapse_dataset(data)
+        data = self.collapse_dataset(data)
+
         # Data preprocessing
         # Data contains columns: 'year', 'month', 'season', 'day', 'hour', 'temperature', 'load_requirement'
 
