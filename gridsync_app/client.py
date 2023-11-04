@@ -21,9 +21,9 @@ data_to_upload = {
     'timestamp': int(time.time()),
     'data': {
 		'transaction_details': 'Buy 10 BTC',
-		'supply': 1000,
-		'price': 5000,
-		'user': 'Alice'
+		'supply': 2000,
+		'price': 7000,
+		'user': 'Randy'
 	}
 }
 

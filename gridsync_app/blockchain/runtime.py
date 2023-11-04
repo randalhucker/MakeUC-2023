@@ -17,5 +17,5 @@ class Blockchain:
 
     def add_block(self, data: Dict[str,str], proof: int) -> None:
         previous_block = self.get_last_block()
-        new_block = Block(previous_block.index + 1, previous_block.hash, int(time.time()), data, proof)
+        new_block = Block(previous_block.index + 1, previous_block.hash, int(time.time()), data['data'], proof)
         self.chain.append(new_block)

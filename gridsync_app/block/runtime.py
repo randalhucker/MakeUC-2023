@@ -16,3 +16,12 @@ class Block:
                               str(self.timestamp).encode() +
                               str(self.data).encode() +
                               str(self.proof).encode()).hexdigest()
+        
+    def to_dict(self) -> dict:
+        return {
+            'index': self.index,
+            'timestamp': self.timestamp,
+            'data': self.data,
+            'proof': self.proof,
+            'previous_hash': self.previous_hash
+        }
