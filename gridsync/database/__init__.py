@@ -1,1 +1,1 @@
-from database.runtime import DataBase
+from database.runtime import *
