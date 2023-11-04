@@ -2,12 +2,11 @@ import requests
 import time
 
 # Get the latest blockchain from the server
-response = requests.get('http://localhost:5000/blockchain')
+response = requests.get('http://127.0.0.1:5000/blockchain/last')
 
 if response.status_code == 200:
-    blockchain = response.json()
-    last_block = blockchain[-1]
-    previous_hash = last_block['previous_hash']  # Get the latest block's hash
+    last_block = response.json()
+    previous_hash = last_block['previous_hash']+'1'  # Get the latest block's hash
     index = last_block['index'] + 1
 else:
     print("Failed to retrieve the blockchain")
@@ -20,15 +19,15 @@ data_to_upload = {
     'previous_hash': previous_hash,
     'timestamp': int(time.time()),
     'data': {
-		'transaction_details': 'Buy 10 BTC',
-		'supply': 2000,
+		'transaction_details': 'Steal Ethans JiggleWatts',
+		'supply': "2000 jiggle watts",
 		'price': 7000,
-		'user': 'Randy'
+		'user': 'Sam'
 	}
 }
 
 # Upload the data to the server
-response = requests.post('http://localhost:5000/upload', json=data_to_upload)
+response = requests.post('http://127.0.0.1:5000/blockchain/upload', json=data_to_upload)
 
 if response.status_code == 201:
     print("Data added to the blockchain")

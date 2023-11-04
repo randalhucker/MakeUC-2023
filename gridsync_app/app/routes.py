@@ -1,12 +1,13 @@
 from app import app
+from flask import request
 from gridsync.runtime import GridSyncApp
 
 gridsync = GridSyncApp()
 
-@app.route('/upload', methods=['POST'])
+@app.route('/blockchain/upload', methods=['POST'])
 def upload_block():
-    return gridsync.upload_data()
-
+    data = request.get_json()
+    return gridsync.upload_data(data)
 
 @app.route('/blockchain', methods=['GET'])
 def get_blockchain():

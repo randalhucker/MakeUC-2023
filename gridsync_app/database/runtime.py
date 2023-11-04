@@ -39,10 +39,10 @@ class DataBase:
         collection = db[self.collection_name]
 
         # Get most recent record from MongoDB with specified ID number
-        #records = collection.find({"ID": ID})
+        record = collection.find({"ID": ID}).sort("Time", -1).limit(1)
 
         # Convert record to pandas dataframe
-        records_df = pd.DataFrame(list(records))
+        records_df = pd.DataFrame(list(record))
 
         # Close MongoDB connection
         client.close()
