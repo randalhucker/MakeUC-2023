@@ -20,6 +20,7 @@ class Model:
         # Load historical data
         data = self.database.get_records(self.id)
 
+        data = collapse_dataset(data)
         # Data preprocessing
         # Data contains columns: 'year', 'month', 'season', 'day', 'hour', 'temperature', 'load_requirement'
 
@@ -56,3 +57,21 @@ class Model:
 
         # Train the model
         model.fit(X_train, y_train, epochs=50, batch_size=32)
+        self.model = model
+
+
+    def collapse_dataset(self, df):
+        # Ensure that the 'day' column is in datetime format
+        df['day'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month'].astype(str) + '-' + df['day'].astype(str), format='%Y-%m-%d')
+
+        # Group the data by year, week, and hour, and calculate the mean values for temperature and load_requirement
+        collapsed_df = df.groupby([df['year'], df['month'], df['day'].dt.week, df['hour']])[['temperature', 'load_requirement']].mean().reset_index()
+
+        # Rename columns to match the desired output
+        collapsed_df.columns = ['year', 'month', 'week', 'hour', 'average_temperature', 'average_load_requirement']
+
+        return collapsed_df
+
+
+    def predict(self):
+        pass
