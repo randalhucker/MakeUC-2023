@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<
 const currentLoad = ref(19681997.5); // initialize load at 1 MWe
 const currentRPM = ref(3600);
 
-const speedLoadCoeff = 1 / 5000; // 75% change per megawatt of difference
+const speedLoadCoeff = 1 / 500000; // 75% change per megawatt of difference
 const desiredRPM = 3600;
 
 const tripRPM = { min: 3582, max: 3618 }; // 59.7 Hz to 60.3 Hz
@@ -22,7 +22,7 @@ const updateFrequency = () => {
 };
 
 const updateLoad = (milliElapsed: number) => {
-    currentLoad.value += ((props.requestedLoad - currentLoad.value) * (Math.log10(((milliElapsed / 1000) * 2) + 1)));
+    currentLoad.value += ((props.requestedLoad - currentLoad.value) * 0.25);
 };
 
 const computeLoadColor = computed(() => {

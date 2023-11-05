@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { ref, onBeforeMount, computed } from 'vue';
-import EventBus from '../services/event-bus';
+import { ref, computed } from 'vue';
 import Consumer from './Consumer.vue';
-// const props = withDefaults(defineProps<
-// {
-//     squareFootage: number,
-//     externalTemp: number,
-//     hour: number,
-// }>(), {
-//     squareFootage: 2000, // requested load in watts
-//     externalTemp: 60,
-//     hour: 0,
-// });
+
+withDefaults(defineProps<
+{
+    hour: number,
+}>(), {
+    hour: 0,
+});
 
 const loads = ref<number[]>([]);
 
@@ -27,13 +23,84 @@ const emit = defineEmits(['update-load']);
 
 const updateLoad = (load: number, index: number) => {
     loads.value[index] = load;
-    emit('update-load', currentLoad.value / 3);
+    emit('update-load', currentLoad.value);
 };
 
 </script>
 
 <template>
-    <Consumer @update-load="(load: number) => updateLoad(load, i)" v-for="(_, i) in 3" :key="i"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 1)"
+        :square-footage="1500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="200"
+        :id="0"
+        :sub-id="0"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 2)"
+        :square-footage="3500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="100"
+        :id="1"
+        :sub-id="0"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 3)"
+        :square-footage="4500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="50"
+        :id="2"
+        :sub-id="0"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 4)"
+        :square-footage="1500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="200"
+        :id="0"
+        :sub-id="1"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 5)"
+        :square-footage="3500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="100"
+        :id="1"
+        :sub-id="1"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 6)"
+        :square-footage="4500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="50"
+        :id="2"
+        :sub-id="1"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 7)"
+        :square-footage="1500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="200"
+        :id="0"
+        :sub-id="2"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 8)"
+        :square-footage="3500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="100"
+        :id="1"
+        :sub-id="2"/>
+    <Consumer 
+        @update-load="(load: number) => updateLoad(load, 9)"
+        :square-footage="4500"
+        :external-temp="15.55"
+        :hour="hour"
+        :num-houses="50"
+        :id="2"
+        :sub-id="2"/>
 </template>
 
 <style scoped>
