@@ -15,6 +15,9 @@ class DataBase:
 		self.db: Database = None
 		self.models: Collection = None
   
+	def list_collection_names(self) -> List[str]:
+		return self.db.list_collection_names()
+  
 	def connect(self) -> None:
 		self.client = pymongo.MongoClient(self.mongo_host, self.mongo_port)
 		self.db = self.client[self.database_name]

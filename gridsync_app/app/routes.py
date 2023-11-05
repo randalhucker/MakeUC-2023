@@ -43,3 +43,8 @@ def get_contract_data(contract_id: str) -> Response:
 @app.route('/all_contracts', methods=['GET'])
 def get_all_contracts() -> Response:
     return gridsync.get_all_contracts()
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()
+    return gridsync.make_prediction(data)

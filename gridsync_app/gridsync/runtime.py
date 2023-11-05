@@ -3,11 +3,34 @@ from block import Block
 from blockchain import Blockchain
 from typing import List, Dict, Tuple
 from flask import Response, request, jsonify
+from database.runtime import DataBase
+from models.runtime import PredictedLoadModel
 from smart_contract import SmartContract
+from typing import List, Dict
+import pickle
 
 class GridSyncApp:
     def __init__(self):
         self.blockchain = Blockchain()
+        self.database = DataBase()
+        self.models: Dict[str, PredictedLoadModel]= {}
+        try:
+            # Connect to the database
+            print("Connecting to database")
+            self.database.connect()
+            print("Connected to database")
+            
+            self.database.delete_collection("Wooster")
+            self.database.models.delete_collection()
+            
+            self.database.create_collection("Wooster", "Wooster_Data")
+                
+            model = PredictedLoadModel(self.database, "Wooster")
+            self.models["Wooster"] = model
+            model.train(self.database)
+            
+        except Exception as e:
+            print(e)
     
     # Check if a received block is valid
     def is_valid_block(self, dict_block: Dict[str, str], previous_block: Block) -> bool:
@@ -90,4 +113,30 @@ class GridSyncApp:
     def get_all_contracts(self) -> Response:
         contracts = [contract.to_dict() for contract in self.blockchain.find_all_contracts()]
         return jsonify(contracts)
+    
+    def make_prediction(self, data) -> Response:
+        """This method is used to make a prediction for the estimated load requirement for a given node in the grid for a given week
+        Example request:
+        data = {
+            "collection_name": "Wooster",
+            "year": 2021,
+            "month": 1,
+            "day": 1,
+            "temperature": 0
+        }
+
+        Args:
+            data (Dict): A dictionary containing the collection name, year, month, day, hour, and temperature
+
+        Returns:
+            Response: A response containing the predicted load requirement for each hour (averaged for the given week)
+        """
+        collection_name = data['collection_name']
+        model: PredictedLoadModel = self.models[collection_name]
+        year = data['year']
+        month = data['month']
+        day = data['day']
+        temperature = data['temperature']
+        prediction = model.predict_weekly_loads(year, month, day, temperature)
+        return jsonify(prediction)
         

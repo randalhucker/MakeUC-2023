@@ -10,6 +10,7 @@ from typing import Dict
 class Collection:
     def __init__(self, db: Database, name: str, csv_name: str = None):
         self.name = name
+        print("Connecting to collection")
         self.collection = db[name]
         if csv_name is not None:
             self.create_collection(csv_name)
@@ -17,7 +18,7 @@ class Collection:
     def create_collection(self, csv_name: str) -> None:
         # Open and read the CSV file
         with open(
-            f"C:/Users/samgr/Documents/GitHub/MakeUC-2023/gridsync_app/collection/{csv_name}.csv",
+            f"/Users/randyhucker/Documents/GitHub/MakeUC-2023/gridsync_app/collection/{csv_name}.csv",
             "r",
         ) as file:
             csv_reader = csv.DictReader(file)
@@ -93,3 +94,6 @@ class Collection:
         else:
             # Update model in MongoDB
             self.collection.update_one({"_id": model_name}, {"$set": {"model": model, "scaler": scaler}})
+            
+    def count_documents(self, query: Dict[str, str]) -> int:
+        return self.collection.count_documents(query)

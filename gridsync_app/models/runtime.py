@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
 import pickle
-from database import DataBase
-from collection import Collection as col
+from database.runtime import DataBase
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import List
 
 pd.set_option("display.max_rows", 50)  # Display up to 20 rows
 
@@ -52,7 +52,7 @@ class PredictedLoadModel:
     # This method is used to train the model
     # The model is trained using the data currently stored in the data attribute
     # The model is then saved to / updated in the database
-    def train(self):
+    def train(self, database: DataBase):
         # Format the data (import from database and collapse into weekly averages)
         self.format_data()
 
@@ -94,12 +94,11 @@ class PredictedLoadModel:
 
         # Save the new model to the class and update the database
         self.model = model
-        self.database.models.upload_model(
+        database.models.upload_model(
             self.collection_name, pickle.dumps(model), pickle.dumps(self.scaler)
         )
 
         # Evaluate the model and print the results
-        print(model.evaluate(X_test, y_test))
 
     # This method is used to predict the estimated load requirement for a given node in the grid for a given week
     # This method will return a pandas dataframe containing the predicted load requirement for each hour (averaged for the given week)
@@ -107,18 +106,7 @@ class PredictedLoadModel:
     # if updated predictions are required, the format data and train methods should be called first
     def predict_weekly_loads(
         self, year: int, month: int, day: int, average_temperature: float
-    ) -> pd.DataFrame:
-        # Create a dataframe in the format of the collapsed dataset
-        pred_df = pd.DataFrame(
-            columns=[
-                "year",
-                "month",
-                "week",
-                "hour",
-                "average_temperature",
-                "average_load_requirement",
-            ]
-        )
+    ) -> List[float]:
         # Get the week number for the given date
         week = datetime(year, month, day).isocalendar()[1]
         predictions = []
@@ -134,8 +122,8 @@ class PredictedLoadModel:
             # Ensure data is scaled and transformed
             scaled_df = self.scaler.transform(df_copy)
 
-            # Add start index to predictions dataframe
-            pred_df.loc[i] = pd.DataFrame(scaled_df[start_index], columns=pred_df.columns)
+            # Add start index row to predictions dataframe
+            # pred_df.loc[i] = pd.DataFrame(scaled_df[start_index, :], columns=pred_df.columns)
 
             # Create sequence for input 
             X = []
@@ -144,17 +132,20 @@ class PredictedLoadModel:
 
             # Make a prediction for the expected load requirement for each hour averaged over the week
             prediction = self.model.predict(X)
+            predictions.append(prediction)
+            
+        # Get Scalar values
+        load_scaler_max = self.scaler.data_max_[-1]
+        load_scaler_min = self.scaler.data_min_[-1]
+        for p in range(len(predictions)):
+            # Inverse transform the prediction
+            prediction = predictions[p]
+            prediction = prediction * (load_scaler_max - load_scaler_min) + load_scaler_min
+            predictions[p] = prediction
 
-            # Add the data to df and the prediction to the corresponding entry
-            pred_df.loc[pred_df.index[i], "average_load_requirement"] = prediction
-
-        print(pred_df)
-
-        # Inverse transform the scaled columns
-        prediction_df = self.scaler.inverse_transform(pred_df)
-        print(prediction_df)
-
-        return prediction_df
+        # Add predictions to dataframe
+        float_values = [float(arr[0, 0]) for arr in predictions]
+        return float_values
 
     # This method is used to collapse the dataset into weekly averages
     # This method will return a pandas dataframe containing the collapsed data
@@ -163,13 +154,8 @@ class PredictedLoadModel:
         df["day"] = pd.to_datetime(df[["year", "month", "day"]])
         # Transform the 'day' column to week number
         df["day"] = df["day"].apply(lambda x: x.isocalendar()[1])
-
-        print(df)
-
         # Collapse the dataset into weekly averages
         collapsed_df = df.groupby(["year", "month", "day", "hour"]).mean().reset_index()
-
-        print(collapsed_df.iloc[0:50])
 
         # Rename columns to match the desired output
         collapsed_df.columns = [
