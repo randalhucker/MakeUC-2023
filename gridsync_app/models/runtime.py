@@ -122,20 +122,28 @@ class PredictedLoadModel:
         )
         # Get the week number for the given date
         week = datetime(year, month, day).isocalendar()[1]
+        predictions = []
 
-        # Get starting index for the week
-        start_index = self.data["year": year, "week": week].index[-1]
+        for i in range(0, 23):
+            df_copy = self.data.copy()
+            # Filter the DataFrame for the specified year, week, and hour
+            filtered_data = df_copy[(df_copy["year"] == year) & (df_copy["week"] == week) & (df_copy["hour"] == (i * 100))]
 
-        # Ensure data is scaled and transformed
-        scaled_df = self.scaler.transform(df)
+            # Select the last entry's index from the filtered subset
+            start_index = filtered_data.index[-1]
 
-        # Create sequence for input 
-        X = []
-        X.append(scaled_df[start_index - self.sequence_length : start_index, :])
-        X = np.array(X)
+            # Ensure data is scaled and transformed
+            scaled_df = self.scaler.transform(df_copy)
 
-        # Make a prediction for the expected load requirement for each hour averaged over the week
-        predictions = self.model.predict(X)
+            # Create sequence for input 
+            X = []
+            X.append(scaled_df[start_index - self.sequence_length : start_index, :])
+            X = np.array(X)
+
+            # Make a prediction for the expected load requirement for each hour averaged over the week
+            predictions.append(self.model.predict(X))
+            print(predictions)
+    
         # Update the 'average_load_requirement' column with predictions
         df["average_load_requirement"] = predictions
         # Inverse transform the scaled columns
