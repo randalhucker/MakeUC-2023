@@ -17,7 +17,7 @@ class Collection:
     def create_collection(self, csv_name: str) -> None:
         # Open and read the CSV file
         with open(
-            f"/Users/randyhucker/Documents/GitHub/MakeUC-2023/gridsync_app/collection/{csv_name}.csv",
+            f"C:/Users/samgr/Documents/GitHub/MakeUC-2023/gridsync_app/collection/{csv_name}.csv",
             "r",
         ) as file:
             csv_reader = csv.DictReader(file)

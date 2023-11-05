@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 
 pd.set_option("display.max_rows", 50)  # Display up to 20 rows
 
-
 # Model class
 # This class is used to train and predict using a Long Short Term Memory (LSTM) Recurrent Neural Network (RNN)
 class PredictedLoadModel:
@@ -110,7 +109,7 @@ class PredictedLoadModel:
         self, year: int, month: int, day: int, average_temperature: float
     ) -> pd.DataFrame:
         # Create a dataframe in the format of the collapsed dataset
-        df = pd.DataFrame(
+        pred_df = pd.DataFrame(
             columns=[
                 "year",
                 "month",
@@ -135,19 +134,25 @@ class PredictedLoadModel:
             # Ensure data is scaled and transformed
             scaled_df = self.scaler.transform(df_copy)
 
+            # Add start index to predictions dataframe
+            pred_df.loc[i] = pd.DataFrame(scaled_df[start_index], columns=pred_df.columns)
+
             # Create sequence for input 
             X = []
             X.append(scaled_df[start_index - self.sequence_length : start_index, :])
             X = np.array(X)
 
             # Make a prediction for the expected load requirement for each hour averaged over the week
-            predictions.append(self.model.predict(X))
-            print(predictions)
-    
-        # Update the 'average_load_requirement' column with predictions
-        df["average_load_requirement"] = predictions
+            prediction = self.model.predict(X)
+
+            # Add the data to df and the prediction to the corresponding entry
+            pred_df.loc[pred_df.index[i], "average_load_requirement"] = prediction
+
+        print(pred_df)
+
         # Inverse transform the scaled columns
-        prediction_df = self.scaler.inverse_transform(df)
+        prediction_df = self.scaler.inverse_transform(pred_df)
+        print(prediction_df)
 
         return prediction_df
 
