@@ -129,8 +129,7 @@ class PredictedLoadModel:
         # Ensure data is scaled and transformed
         scaled_df = self.scaler.transform(df)
 
-        # Create sequences for input data
-        # Sequence length is how far back the model considers to produce a single prediction
+        # Create sequence for input 
         X = []
         X.append(scaled_df[start_index - self.sequence_length : start_index, :])
         X = np.array(X)
