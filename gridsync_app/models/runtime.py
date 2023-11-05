@@ -132,12 +132,7 @@ class PredictedLoadModel:
         # Create sequences for input data
         # Sequence length is how far back the model considers to produce a single prediction
         X = []
-
-        for i in range(self.sequence_length, len(self.data)):
-            X.append(
-                scaled_df[i - self.sequence_length : i, :]
-            )  # X contains all the features except the target variable (this might need to be sequence_length - i: i)
-
+        X.append(scaled_df[start_index - self.sequence_length : start_index, :])
         X = np.array(X)
 
         # Make a prediction for the expected load requirement for each hour averaged over the week
