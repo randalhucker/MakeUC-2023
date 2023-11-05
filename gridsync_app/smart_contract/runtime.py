@@ -23,12 +23,32 @@ class SmartContract:
 		self.address: str = self.generate_unique_contract_id(owner)
 		self.executed: bool = False
 
-	def execute(self, data: Dict[str, str]) -> Dict[str, str]:
+	def execute(self, blockchain, data: Dict[str, str]) -> Dict[str, str]:
 		# Execute the contract and return the result
 		self.executed = True
 		self.buyer = data['s_address']
-		# TODO Add logic for executing the contract
-		return self.data
+  
+		# Get the latest blockchain from the app
+		last_block = blockchain.get_last_block()
+  
+		previous_hash = last_block.previous_hash  # Get the latest block's hash
+		index = last_block.index + 1
+
+		# Prepare data with the correct index and previous hash
+		data_to_upload = {
+			'index': index,
+			'previous_hash': previous_hash,
+			'timestamp': int(time.time()),
+			'data': {
+				's_address': self.owner,
+				'r_address': self.buyer,
+				'amount': self.data['amount'],
+				'price': self.data['price'],
+				'signature': f'{self.owner}\'s Signature',
+			}
+		}
+  
+		return data_to_upload
 
 	def generate_unique_contract_id(self, owner_id):
 		# Generate a contract ID based on the current timestamp, owner ID, and some random value

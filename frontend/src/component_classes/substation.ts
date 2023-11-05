@@ -35,6 +35,39 @@ export default class Substation {
         }
     }
 
+    getPredicationData = async ({
+        collection_name,
+        year,
+        month,
+        day,
+        temperature
+    }:{
+        collection_name: string,
+        year: number,
+        month: number,
+        day: number,
+        temperature: number
+    }): Promise<string[]> => {
+        let user_data = {
+            "collection_name": collection_name,
+            "year": year,
+            "month": month,
+            "day": day,
+            "temperature": temperature
+        }
+        const response = await this.makeHttpPostRequest("http://127.0.0.1:5000/predict", user_data);
+
+        if (response.status != 200) {
+            console.log("Error: Cannot get the prediction data")
+            return []
+        }
+
+        let prediction_data: string[] = response.data
+
+        return prediction_data
+
+    }
+
     // Methods For Neighbors
     getLeftNeighbor(): Substation | null {
         return this.leftNeighbor;
@@ -109,7 +142,7 @@ export default class Substation {
 		let response = await this.makeHttpGetRequest('http://127.0.0.1:5000/blockchain/last')
 		
 		let index = 0
-		let previous_hash = "0"  // Use the Genesis block's hash when the blockchain is empty
+		let previous_hash = "0"  // Use the Genesis block's  hash when the blockchain is empty
 
 		if (response.status != 200) {
 			console.log("Error: Cannot get the last block")

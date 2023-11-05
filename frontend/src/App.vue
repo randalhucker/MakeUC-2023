@@ -58,8 +58,15 @@ const tick = (timestamp: DOMHighResTimeStamp) => {
 const updateLoad = (load: number) => {
   reqLoad.value = load;
 }
-onMounted(() => {
-  console.log(`LOAD: ${sub1.getPredictedLoad()}`);
+onMounted(async () => {
+  const value = await sub1.getPredicationData({
+    collection_name: 'Wooster',
+    year: 2021,
+    month: 1,
+    day: 1,
+    temperature: 5,
+  });
+  console.log(value);
   date.value = new Date();
   date.value.setFullYear(2023, 0, 1);
   date.value.setHours(0, 0, 0);

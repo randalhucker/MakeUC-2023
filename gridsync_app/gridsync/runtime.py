@@ -98,7 +98,8 @@ class GridSyncApp:
     def execute_contract(self, contract_id: str, data) -> Tuple[str, int]:
         contract = self.blockchain.find_contract_by_id(contract_id)
         if contract:
-            contract.execute(data)
+            data_to_upload = contract.execute(self.blockchain, data)
+            self.upload_data(data_to_upload)
             return "Contract executed successfully", 200
         else:
             return "Contract not found", 404
