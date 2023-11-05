@@ -19,15 +19,16 @@ data_to_upload = {
     'previous_hash': previous_hash,
     'timestamp': int(time.time()),
     'data': {
-		'transaction_details': 'Steal Ethans JiggleWatts',
-		'supply': "2000 jiggle watts",
-		'price': 7000,
-		'user': 'Sam'
+		's_address': 'Alice',
+        'r_address': 'Bob',
+        'amount': '12KW',
+        'price': '0.12$/KW',
+        'signature': 'Alice\'s Signature',
 	}
 }
 
 # Upload the data to the server
-response = requests.post('http://127.0.0.1:5000/blockchain/upload', json=data_to_upload)
+response = requests.post('http://127.0.0.1:5000/blockchain/transaction', json=data_to_upload)
 
 if response.status_code == 201:
     print("Data added to the blockchain")

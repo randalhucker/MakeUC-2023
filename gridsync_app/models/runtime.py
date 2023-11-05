@@ -7,41 +7,53 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+from datetime import datetime, timedelta
 
 # Model class
 # This class is used to train and predict using a Long Short Term Memory (LSTM) Recurrent Neural Network (RNN)
 class PredictedLoadModel:
     def __init__(self, ModelID):
+        # The model ID is used to identify the model in the database, this ID will match the ID of a node in the grid for which we have records
         self.id = ModelID
+        # The database class is used to interact with MongoDB
         self.database = db.DataBase()
+        # The sequence length is the number of data points that the model will consider to make a prediction (2 years worth of data once records are collapsed)
+        self.sequence_length = 2496 # 2 years * 52 weeks * 24 hours 
+        # The model attribute will be used to store the model (if one is present in the database)
         self.model = pickle.loads(self.database.get_model(ModelID))
+        # The data attribute will be used to store the data used to train / retrain the model
+        self.data = None
 
-    def train(self):
+    # This method is used to format the data for the model
+    # it uses the database class to interact with MongoDB and retrieve the data
+    # it then formats the data into a pandas dataframe and collapses the data into a weekly average
+    # that can be used to train the model
+    def format_data(self, df):
         # Load historical data
         data = self.database.get_records(self.id)
 
-        data = self.collapse_dataset(data)
-
-        # Data preprocessing
-        # Data contains columns: 'year', 'month', 'season', 'day', 'hour', 'temperature', 'load_requirement'
-
         # Select relevant columns
-        selected_features = ['year', 'month', 'season', 'day', 'hour', 'temperature', 'load_requirement']
+        selected_features = ['year', 'month', 'day', 'hour', 'temperature', 'load requirement']
         data = data[selected_features]
+        
+        # Collapse the data into weekly averages
+        self.data = self.collapse_dataset(data)
 
+    # This method is used to train the model
+    # The model is trained using the data currently stored in the data attribute 
+    # The model is then saved to / updated in the database
+    def train(self):
         # Normalize the data using Min-Max scaling
         scaler = MinMaxScaler()
-        data_scaled = scaler.fit_transform(data)
+        data_scaled = scaler.fit_transform(self.data)
 
-        # Create sequences for input data (e.g., look back 24 hours for predictions)
+        # Create sequences for input data
         # Sequence length is how far back the model considers to produce a single prediction
-        # in the current case, the model will look back 24 hours to predict the load requirement for the next hour (24 * 7 features to get the )
-        sequence_length = 24 
         X, y = [], []
 
-        for i in range(sequence_length, len(data)):
-            X.append(data_scaled[i - sequence_length:i, :]) # X contains all the features except the target variable (this might need to be sequence_length - i: i)
-            y.append(data_scaled[i, -1])  # 'load_requirement' is the target variable
+        for i in range(self.sequence_length, len(self.data)):
+            X.append(data_scaled[i - self.sequence_length:i, :]) # X contains all the features except the target variable (this might need to be sequence_length - i: i)
+            y.append(data_scaled[i, -1])  # 'load requirement' is the target variable
 
         X, y = np.array(X), np.array(y)
 
@@ -58,8 +70,10 @@ class PredictedLoadModel:
 
         # Train the model
         model.fit(X_train, y_train, epochs=50, batch_size=32)
-        self.model = model
 
+        # Save the new model to the class and update the database
+        self.model = model
+        self.database.update_model(self.id, pickle.dumps(model))
 
     def collapse_dataset(self, df):
         # Ensure that the 'day' column is in datetime format
@@ -73,6 +87,21 @@ class PredictedLoadModel:
 
         return collapsed_df
 
+    # This method is used to predict the estimated load requirement for a given node in the grid for a given week
+    # This method will return a pandas dataframe containing the predicted load requirement for each hour (averaged for the given week)
+    # This method will use the cureent model to make the prediction, if no model is present it will return None
+    # if updated predictions are required, the format data and train methods should be called first
+    def predict_weekly_loads(self, year, month, week, average_temperature):
+        # Create a dataframe in the format of the collapsed dataset
+        # Create an empty DataFrame
+        df = pd.DataFrame(columns=["year", "month", "week", "hour", "average_temperature"])
 
-    def predict(self):
-        pass
+        for hour in range(24):
+            # Append row to the DataFrame   
+            df = df.append({"year": year, "month": month, "week": week, "hour": hour, "average_temperature": average_temperature}, ignore_index=True)
+
+        # Make a prediction for the expected load requirement for each hour averaged over the week
+        predictions = self.model.predict(df)
+        df['average_load_prediction'] = predictions
+
+        return df

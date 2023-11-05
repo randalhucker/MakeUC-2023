@@ -3,6 +3,7 @@ from block import Block
 from blockchain import Blockchain
 from typing import List, Dict, Tuple
 from flask import Response, request, jsonify
+from smart_contract import SmartContract
 
 class GridSyncApp:
     def __init__(self):
@@ -32,16 +33,16 @@ class GridSyncApp:
         return proof
  
     # Handle POST request to upload data
-    def upload_data(self, data) -> Tuple[str, int]:
+    def upload_data(self, data) -> Tuple[int, int]:
         last_block = self.blockchain.get_last_block()
         proof = self.proof_of_work(last_block.proof, last_block.hash)
         v_block = self.is_valid_block(data, last_block)
         v_proof = self.is_valid_proof(last_block.proof, last_block.hash, proof)
         if v_block and v_proof:
             self.blockchain.add_block(data, proof)
-            return ("Data added to the blockchain", 201)
+            return (data['index'], 201)
         else:
-            return ("Invalid data or proof of work", 400)
+            return (0, 400)
 
     # Handle GET request to retrieve the entire blockchain
     def get_blockchain(self) -> Response:
@@ -60,3 +61,33 @@ class GridSyncApp:
     # Get the length of the blockchain
     def get_blockchain_length(self) -> Response:
         return jsonify(len(self.blockchain.chain))
+
+    # TODO Fix route for deploying smart contracts
+    def deploy_contract(self, data) -> Tuple[str, int]:
+        owner = data['s_address']
+        data = data['data']
+        contract = SmartContract(owner, data)
+
+        # Store the contract in the current block
+        self.blockchain.contracts.append(contract)
+        return (contract.address, 201)
+    
+    def execute_contract(self, contract_id: str, data) -> Tuple[str, int]:
+        contract = self.blockchain.find_contract_by_id(contract_id)
+        if contract:
+            contract.execute(data)
+            return "Contract executed successfully", 200
+        else:
+            return "Contract not found", 404
+    
+    def get_contract_data(self, contract_id: str) -> Response:
+        contract = self.blockchain.find_contract_by_id(contract_id)
+        if contract:
+            return jsonify(contract.to_dict())
+        else:
+            return "Contract not found", 404
+        
+    def get_all_contracts(self) -> Response:
+        contracts = [contract.to_dict() for contract in self.blockchain.find_all_contracts()]
+        return jsonify(contracts)
+        
