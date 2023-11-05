@@ -111,7 +111,7 @@ class PredictedLoadModel:
         week = datetime(year, month, day).isocalendar()[1]
         predictions = []
 
-        for i in range(0, 23):
+        for i in range(0, 24):
             df_copy = self.data.copy()
             # Filter the DataFrame for the specified year, week, and hour
             filtered_data = df_copy[(df_copy["year"] == year) & (df_copy["week"] == week) & (df_copy["hour"] == (i * 100))]
