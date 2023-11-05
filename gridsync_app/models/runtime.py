@@ -2,40 +2,46 @@
 import pandas as pd
 import numpy as np
 import pickle
-from database import Database as db
+from database import DataBase
+from collection import Collection as col
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
 from datetime import datetime, timedelta
 
 # Model class
 # This class is used to train and predict using a Long Short Term Memory (LSTM) Recurrent Neural Network (RNN)
 class PredictedLoadModel:
-    def __init__(self, ModelID):
+    def __init__(self, db: DataBase, col_name: str):
         # The model ID is used to identify the model in the database, this ID will match the ID of a node in the grid for which we have records
-        self.id = ModelID
+        self.collection_name = col_name
+        # The collection attribute is used to interact with the collection in the database
+        self.collection = db.get_collection(col_name)
         # The database class is used to interact with MongoDB
-        self.database = db.DataBase()
+        self.database: DataBase = db
         # The sequence length is the number of data points that the model will consider to make a prediction (2 years worth of data once records are collapsed)
         self.sequence_length = 2496 # 2 years * 52 weeks * 24 hours 
         # The model attribute will be used to store the model (if one is present in the database)
-        self.model = pickle.loads(self.database.get_model(ModelID))
+        try:
+            self.model = pickle.loads(self.database.models.get_model(col_name))
+        except Exception as e:
+            self.model = None
         # The data attribute will be used to store the data used to train / retrain the model
-        self.data = None
-
+        self.data: pd.DataFrame = None
+    
     # This method is used to format the data for the model
     # it uses the database class to interact with MongoDB and retrieve the data
     # it then formats the data into a pandas dataframe and collapses the data into a weekly average
     # that can be used to train the model
-    def format_data(self, df):
-        # Load historical data
-        data = self.database.get_records(self.id)
-
-        # Select relevant columns
-        selected_features = ['year', 'month', 'day', 'hour', 'temperature', 'load requirement']
-        data = data[selected_features]
+    def format_data(self) -> None:
+        # Load data from collection
+        data: pd.DataFrame = self.collection.get_records()
         
+        # Select relevant columns
+        data.drop(['_id'], axis=1, inplace=True)
+       
         # Collapse the data into weekly averages
         self.data = self.collapse_dataset(data)
 
@@ -43,6 +49,8 @@ class PredictedLoadModel:
     # The model is trained using the data currently stored in the data attribute 
     # The model is then saved to / updated in the database
     def train(self):
+        # Format the data (import from database and collapse into weekly averages)
+        self.format_data()
         # Normalize the data using Min-Max scaling
         scaler = MinMaxScaler()
         data_scaled = scaler.fit_transform(self.data)
@@ -73,19 +81,10 @@ class PredictedLoadModel:
 
         # Save the new model to the class and update the database
         self.model = model
-        self.database.update_model(self.id, pickle.dumps(model))
-
-    def collapse_dataset(self, df):
-        # Ensure that the 'day' column is in datetime format
-        df['day'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month'].astype(str) + '-' + df['day'].astype(str), format='%Y-%m-%d')
-
-        # Group the data by year, week, and hour, and calculate the mean values for temperature and load_requirement
-        collapsed_df = df.groupby([df['year'], df['month'], df['day'].dt.week, df['hour']])[['temperature', 'load_requirement']].mean().reset_index()
-
-        # Rename columns to match the desired output
-        collapsed_df.columns = ['year', 'month', 'week', 'hour', 'average_temperature', 'average_load_requirement']
-
-        return collapsed_df
+        self.database.models.upload_model(self.collection_name, pickle.dumps(model))
+        
+        # Evaluate the model and print the results
+        print(model.evaluate(X_test, y_test))
 
     # This method is used to predict the estimated load requirement for a given node in the grid for a given week
     # This method will return a pandas dataframe containing the predicted load requirement for each hour (averaged for the given week)
@@ -93,15 +92,22 @@ class PredictedLoadModel:
     # if updated predictions are required, the format data and train methods should be called first
     def predict_weekly_loads(self, year, month, week, average_temperature):
         # Create a dataframe in the format of the collapsed dataset
-        # Create an empty DataFrame
         df = pd.DataFrame(columns=["year", "month", "week", "hour", "average_temperature"])
-
         for hour in range(24):
-            # Append row to the DataFrame   
+            # Append row to the DataFrame
             df = df.append({"year": year, "month": month, "week": week, "hour": hour, "average_temperature": average_temperature}, ignore_index=True)
-
         # Make a prediction for the expected load requirement for each hour averaged over the week
         predictions = self.model.predict(df)
         df['average_load_prediction'] = predictions
-
         return df
+    
+    # This method is used to collapse the dataset into weekly averages
+    # This method will return a pandas dataframe containing the collapsed data
+    def collapse_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Ensure that the 'day' column is in datetime format
+        df['day'] = pd.to_datetime(df[['year', 'month', 'day']])
+        # Group the data by year, week, and hour, and calculate the mean values for temperature and load_requirement
+        collapsed_df = df.groupby([df['year'], df['month'], pd.Grouper(key='day', freq='W'), df['hour']])[['temperature', 'load_requirement']].mean().reset_index()
+        # Rename columns to match the desired output
+        collapsed_df.columns = ['year', 'month', 'day', 'hour', 'average_temperature', 'average_load_requirement']
+        return collapsed_df.astype({'year': int, 'month': int, 'day': int, 'hour': int, 'average_temperature': float, 'average_load_requirement': float})
