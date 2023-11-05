@@ -1,6 +1,8 @@
 # MakeUC-2023
 A decentralized, AI-powered, energy load balancing technology
 
+[Submission Video](https://www.youtube.com/watch?v=L1GLlBwHOvo)
+
 Introduction:
 GridSync aims to revolutionize energy load balancing and the peer to peer energy market by combining the power of AI and blockchain technology to create a decentralized energy grid that maximizes efficiency and sustainability. 
 The project addresses several key challenges in the current energy landscape, including the integration of renewable energy sources, efficient energy distribution, and complexities inherent to peer-to-peer trading.
