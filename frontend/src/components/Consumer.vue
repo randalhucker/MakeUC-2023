@@ -1,31 +1,104 @@
 <script setup lang="ts">
 import { ref, onBeforeMount } from 'vue';
 import EventBus from '../services/event-bus';
+import HouseSubWire from '../services/house-sub-wire';
+const props = withDefaults(defineProps<
+{
+    squareFootage: number,
+    externalTemp: number,
+    hour: number,
+    numHouses: number,
+    id: number,
+    subId: number,
+}>(), {
+    squareFootage: 2000, // requested load in watts
+    externalTemp: 60,
+    hour: 0,
+    numHouses: 100,
+    id: 0,
+    subId: 0,
+});
 
-// const props = withDefaults(defineProps<
-// {
-//     squareFootage: number,
-//     externalTemp: number,
-//     hour: number,
-// }>(), {
-//     squareFootage: 2000, // requested load in watts
-//     externalTemp: 60,
-//     hour: 0,
-// });
+const furnace = [.95, .85, .78, .55, .12, .02];
+const air_conditioning = [.01, .02, .07, .19, .55, .72, .85];
+const lights = [.55, .32, .12, .12, .14, .17, .55, .83, .75, .65, .55, .54,
+.35, .4, .44, .45, .5, .55, .6, .67, .8, .84, .89, .6];
+const oven = [.07, .08, .05, .04, .03, .05, .1, .15, .2, .21, .2, .22,
+.21, .25, .22, .15, .23, .45, .32, .19, .17, .14, .1, .09];
+const dishwasher = [.05, .04, .05, .09, .05, .07, .1, .12, .18, .12, .17, .18,
+.11, .23, .12, .44, .45, .22, .77, .23, .12, .23, .11, .08];
+const washer_dryer = [.05, .04, .05, .09, .05, .07, .1, .12, .18, .12, .17, .18,
+.11, .23, .12, .44, .45, .22, .77, .23, .12, .23, .11, .08];
+const water_heater = [.05, .04, .05, .09, .05, .07, .1, .12, .18, .12, .17, .18,
+.11, .23, .12, .44, .45, .22, .77, .23, .12, .23, .11, .08];
 
-const ix = ref(0);
+const calcFurnaceIdx = () => {
+    if (props.externalTemp < 4.4) {
+        return 0;
+    }
+    else if (props.externalTemp < 10) {
+        return 1;
+    }
+    else if (props.externalTemp < 15.55) {
+        return 2;
+    }
+    else if (props.externalTemp < 21.11) {
+        return 3;
+    }
+    else {
+        return 4;
+    }
+};
+
+const calcACIdx = () => {
+    if (props.externalTemp < 4.4) {
+        return 0;
+    }
+    else if (props.externalTemp < 10) {
+        return 1;
+    }
+    else if (props.externalTemp < 15.55) {
+        return 2;
+    }
+    else if (props.externalTemp < 21.11) {
+        return 3;
+    }
+    else if (props.externalTemp < 26.67) {
+        return 4;
+    }
+    else {
+        return 5;
+    }
+};
+
 const currentLoad = ref(19681997.5);
 
 const emit = defineEmits(['update-load']);
 
 onBeforeMount(() => {
-    EventBus.on('tick', (event: { milliElapsed: DOMHighResTimeStamp }) => {
-        const values = [19681997.5, 13742090.8, 8497755.8, 8995252.8, 9536956.6, 10073950.3, 19958301.5, 26820098.7, 25153897.5, 22223761.5, 20160002.5, 20139904.6, 15184996.5, 16386330, 16917919.6, 18100601.5, 19490014, 20234568.5, 23138367, 23421665.3, 26317327, 27431299.6, 28225938.1, 20682061, 19619117.5, 13867951.8, 9088257.8, 9338162.8, 9089900.6, 10136728.3, 19684694.5, 26958924.7, 24915208.5, 22393089.5, 20136497.5, 20080955.6, 14899387.5, 16539880, 17132100.6, 18338889.5, 19494879, 20645794.5, 23137445, 23513189.3, 26355060, 27461572.6, 28341096.1, 21012628];
-        const step = ((values[(ix.value + 1) % values.length] - values[ix.value]) * event.milliElapsed)  / (60 * 60 * 1000);
-        if (Math.abs(currentLoad.value - values[(ix.value + 1) % values.length]) < (Math.abs(step))) {
-            ix.value = (ix.value + 1) % values.length;
-     }
-        currentLoad.value += step;
+    EventBus.on('hour', () => {
+        let sum = 0;
+        if (Math.random() < furnace[calcFurnaceIdx()]) {
+            sum += 8 * props.squareFootage;
+        }
+        if (Math.random() < air_conditioning[calcACIdx()]) {
+            sum += 7 * props.squareFootage;
+        }
+        sum += 30 * props.squareFootage * lights[props.hour];
+        if (Math.random() < oven[props.hour]) {
+            sum += 2000;
+        }
+        if (Math.random() < dishwasher[props.hour]) {
+            sum += 1300;
+        }
+        if (Math.random() < washer_dryer[props.hour]) {
+            sum += 5500;
+        }
+        if (Math.random() < water_heater[props.hour]) {
+            sum += 1125;
+        }
+        currentLoad.value = sum * props.numHouses;
+        HouseSubWire.set(props.subId, props.id, currentLoad.value);
         emit('update-load', currentLoad.value);
     });
 });
@@ -33,14 +106,16 @@ onBeforeMount(() => {
 </script>
 
 <template>
-    <img src="../assets/home.svg" class="generator"/>
-   <p>{{ (currentLoad / 3000).toFixed(2) }} kWe</p>
+    <div class="gen-wrapper">
+        <img src="../assets/home.svg" class="generator"/>
+        <p>{{ (currentLoad / 1000).toFixed(2) }} kWe</p>
+    </div>
 </template>
 
 <style scoped>
     .generator {
-        height: 75px;
-        width: 75px;
+        height: 25px;
+        width: 25px;
         padding: 0;
         margin: 0;
     }
@@ -58,6 +133,8 @@ onBeforeMount(() => {
         text-align: center;
         align-items: center;
         justify-content: center;
+        padding: 0;
+        margin: 0;
         gap: 1px;
     }
 </style>
