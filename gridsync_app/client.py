@@ -6,7 +6,7 @@ response = requests.get('http://127.0.0.1:5000/blockchain/last')
 
 if response.status_code == 200:
     last_block = response.json()
-    previous_hash = last_block['previous_hash']+'1'  # Get the latest block's hash
+    previous_hash = last_block['previous_hash']  # Get the latest block's hash
     index = last_block['index'] + 1
 else:
     print("Failed to retrieve the blockchain")

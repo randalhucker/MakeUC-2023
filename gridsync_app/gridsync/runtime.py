@@ -63,7 +63,7 @@ class GridSyncApp:
         v_proof = self.is_valid_proof(last_block.proof, last_block.hash, proof)
         if v_block and v_proof:
             self.blockchain.add_block(data, proof)
-            return (data['index'], 201)
+            return ('Data added to the blockchain', 201)
         else:
             return (0, 400)
 
